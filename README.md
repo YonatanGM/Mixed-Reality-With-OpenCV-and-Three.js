@@ -1,4 +1,4 @@
-# Mixed-Reality-With-OpenCV-and-Three.js
+# Mixed-Reality-with-OpenCV-and-Three.js
 
 **aim**:  create a mixed reality experience where a virtual light in a 3D
 scene is controlled in real-time by tracking the movement and orientation of a real object
