@@ -5,4 +5,4 @@ The following packages are required: **numpy, opencv, SimpleWebSocketServer1**
 3. run server.py and then open index.html in your browser.
 4. Hold the pattern (chessboard.svg) and bring it close to the camera. A window with the webcam feed (with the 3D axes overlayed on top) should pop up. Now, you should be able to control the light in the scene by moving the pattern. 
 
-![interface](test.PNG)
+![interface](.\demo\test.PNG)
