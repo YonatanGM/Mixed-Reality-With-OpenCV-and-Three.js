@@ -1,5 +1,5 @@
 # Mixed-Reality-With-OpenCV-and-Three.js
-The following packages are required: **numpy, opencv, SimpleWebSocketServer1**
+The following packages are required: **numpy, opencv, SimpleWebSocketServer**
 1. run `pip install -r requirements.txt`
 2. Before running anything, print chessboard.svg or save it on your phone.
 3. run server.py and then open index.html in your browser.
