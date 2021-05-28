@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Scene</title>
+        <style>
+            body { margin: 0; }
+        </style>
+    </head>
+    <body>
+        <canvas id="c" height="500" width="500"></canvas>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/mathjs/2.4.0/math.min.js"></script>
+        <script type="module">
+            import * as THREE from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/build/three.module.js';
+            import { OrbitControls } from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/examples/jsm/controls/OrbitControls.js';
+            import { RectAreaLightUniformsLib } from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/examples/jsm/lights/RectAreaLightUniformsLib.js';
+            import { RectAreaLightHelper } from 'https://threejsfundamentals.org/threejs/resources/threejs/r127/examples/jsm/helpers/RectAreaLightHelper.js';
+            import { GUI } from 'https://threejsfundamentals.org/threejs/../3rdparty/dat.gui.module.js';
+            var positionHistory = [];
+            var light;
+            function main() {
+                const canvas = document.querySelector('#c');
+                const renderer = new THREE.WebGLRenderer({ canvas });
+                RectAreaLightUniformsLib.init();
+
+
+                const fov = 45;
+                const aspect = 1;  // the canvas default
+                const near = 0.1;
+                const far = 100;
+                const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+                camera.position.set(0, 10, 30);
+
+                const controls = new OrbitControls(camera, canvas);
+                controls.target.set(0, 5, 0);
+                controls.update();
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color('black');
+
+                {
+                    const planeSize = 40;
+
+                    const loader = new THREE.TextureLoader();
+                    const texture = loader.load('https://threejsfundamentals.org/threejs/resources/images/checker.png');
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    texture.magFilter = THREE.NearestFilter;
+                    const repeats = planeSize / 2;
+                    texture.repeat.set(repeats, repeats);
+
+                    const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+                    const planeMat = new THREE.MeshStandardMaterial({
+                        map: texture,
+                        side: THREE.DoubleSide,
+                    });
+                    const mesh = new THREE.Mesh(planeGeo, planeMat);
+                    mesh.rotation.x = Math.PI * -.5;
+                    scene.add(mesh);
+                }
+                {
+                    const cubeSize = 4;
+                    const cubeGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+                    const cubeMat = new THREE.MeshStandardMaterial({ color: '#8AC' });
+                    const mesh = new THREE.Mesh(cubeGeo, cubeMat);
+                    mesh.position.set(cubeSize + 1, cubeSize / 2, 0);
+                    scene.add(mesh);
+                }
+                {
+                    const sphereRadius = 3;
+                    const sphereWidthDivisions = 32;
+                    const sphereHeightDivisions = 16;
+                    const sphereGeo = new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+                    const sphereMat = new THREE.MeshStandardMaterial({ color: '#CA8' });
+                    const mesh = new THREE.Mesh(sphereGeo, sphereMat);
+                    mesh.position.set(-sphereRadius - 1, sphereRadius + 2, 0);
+                    scene.add(mesh);
+                }
+
+                class ColorGUIHelper {
+                    constructor(object, prop) {
+                        this.object = object;
+                        this.prop = prop;
+                    }
+                    get value() {
+                        return `#${this.object[this.prop].getHexString()}`;
+                    }
+                    set value(hexString) {
+                        this.object[this.prop].set(hexString);
+                    }
+                }
+
+                class DegRadHelper {
+                    constructor(obj, prop) {
+                        this.obj = obj;
+                        this.prop = prop;
+                    }
+                    get value() {
+                        return THREE.MathUtils.radToDeg(this.obj[this.prop]);
+                    }
+                    set value(v) {
+                        this.obj[this.prop] = THREE.MathUtils.degToRad(v);
+                    }
+                }
+
+                function makeXYZGUI(gui, vector3, name, onChangeFn) {
+                    const folder = gui.addFolder(name);
+                    folder.add(vector3, 'x', -10, 10).onChange(onChangeFn);
+                    folder.add(vector3, 'y', 0, 10).onChange(onChangeFn);
+                    folder.add(vector3, 'z', -10, 10).onChange(onChangeFn);
+                    folder.open();
+                }
+
+                function updateLight(light) {
+                    console.log(positionHistory.length);
+                    if (positionHistory.length > 0) {
+                        light.position.lerp(new THREE.Vector3(positionHistory[positionHistory.length - 1].x, positionHistory[positionHistory.length - 1].y, 10), 0.02);
+                        //var rotv = new THREE.Vector3(light.rotation.x, light.rotation.y, light.rotation.z);
+                        //rotv.lerp(new THREE.Vector3(THREE.MathUtils.degToRad(positionHistory[0].roll),
+                        //  THREE.MathUtils.degToRad(positionHistory[0].pitch), THREE.MathUtils.degToRad(0)), 0.02);
+
+                        var xrot = [], yrot = [], zrot = []
+                        for (var i = 0; i < positionHistory.length; i++) {
+                            xrot.push(positionHistory[i].roll);
+                            yrot.push(positionHistory[i].pitch);
+                            zrot.push(positionHistory[i].yaw);
+                        }
+                        var meanRoll = math.mean(xrot);
+                        var meanPitch = math.mean(yrot);
+                        var meanYaw = math.mean(zrot);
+                        //light.rotation.x = THREE.MathUtils.degToRad(meanRoll);
+                        //light.rotation.y = THREE.MathUtils.degToRad(meanPitch);
+                        //light.rotation.z = THREE.MathUtils.degToRad(meanYaw);
+                        light.rotation.z = THREE.Math.lerp(light.rotation.z, THREE.MathUtils.degToRad(positionHistory[0].yaw), 1);
+                        light.rotation.y = THREE.Math.lerp(light.rotation.y, THREE.MathUtils.degToRad(positionHistory[0].pitch), 0.3);
+                        light.rotation.x = THREE.Math.lerp(light.rotation.x, THREE.MathUtils.degToRad(positionHistory[0].roll), 0.3);
+                    }
+                }
+
+                {
+                    const color = 0xFFFFFF;
+                    const intensity = 8;
+                    const width = 8;
+                    const height = 7;
+                    light = new THREE.RectAreaLight(color, intensity, width, height);
+                    light.position.set(0, 10, 10);
+                    light.rotation.x = THREE.MathUtils.degToRad(0);
+                    scene.add(light);
+
+                    const helper = new RectAreaLightHelper(light);
+                    light.add(helper);
+
+                    const gui = new GUI();
+                    gui.addColor(new ColorGUIHelper(light, 'color'), 'value').name('color');
+                    gui.add(light, 'intensity', 0, 10, 0.01);
+                    gui.add(light, 'width', 0, 20);
+                    gui.add(light, 'height', 0, 20);
+                    gui.add(new DegRadHelper(light.rotation, 'x'), 'value', -180, 180).name('x rotation');
+                    gui.add(new DegRadHelper(light.rotation, 'y'), 'value', -180, 180).name('y rotation');
+                    gui.add(new DegRadHelper(light.rotation, 'z'), 'value', -180, 180).name('z rotation');
+
+                    makeXYZGUI(gui, light.position, 'position');
+
+
+                }
+
+
+                function resizeRendererToDisplaySize(renderer) {
+                    const canvas = renderer.domElement;
+                    const width = canvas.clientWidth;
+                    const height = canvas.clientHeight;
+                    const needResize = canvas.width !== width || canvas.height !== height;
+                    if (needResize) {
+                        renderer.setSize(width, height, false);
+                    }
+                    return needResize;
+                }
+
+                function render() {
+                    updateLight(light);
+                    if (resizeRendererToDisplaySize(renderer)) {
+                        const canvas = renderer.domElement;
+                        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                        camera.updateProjectionMatrix();
+                    }
+
+                    renderer.render(scene, camera);
+
+                    requestAnimationFrame(render);
+                }
+
+                requestAnimationFrame(render);
+            }
+            var ws = new WebSocket('ws://localhost:9000');
+            ws.onopen = function () {
+                console.log('WebSocket Opened');
+            };
+            ws.onmessage = function (event) {
+                var msg = JSON.parse(event.data);
+                //console.log(msg.x, msg.y);
+                //console.log(msg.roll, msg.pitch, msg.yaw);
+                positionHistory.push({
+                    x: -1 * (msg.x * 20 - 10),
+                    y: (1 - msg.y) * 20,
+                    roll: -1 * msg.roll,
+                    pitch: -1 * msg.pitch,
+                    yaw: -1 * (msg.yaw - 180),
+                });
+
+                if (positionHistory.length > 1) {
+                    positionHistory.shift();
+                }
+
+
+            }
+
+            main();
+        </script>
+    </body>
+</html>
